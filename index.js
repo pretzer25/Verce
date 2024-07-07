@@ -1,12 +1,16 @@
-
 const http = require("node:http");
 const { createBareServer } = require("@tomphttp/bare-server-node");
+const httpProxy = require("http-proxy");
 const fs = require("fs");
 const path = require("path");
+
+// Replace with a valid IP address
+const targetIP = "http://192.168.1.100";
 
 // Create an HTTP server
 const httpServer = http.createServer();
 const bareServer = createBareServer("/bare/");
+const proxy = httpProxy.createProxyServer({ target: targetIP });
 
 httpServer.on("request", (req, res) => {
   if (bareServer.shouldRoute(req)) {
@@ -25,8 +29,13 @@ httpServer.on("request", (req, res) => {
       }
     });
   } else {
-    res.writeHead(400, { "Content-Type": "text/plain" });
-    res.end("Not found.");
+    // Proxy the request to the new IP address
+    proxy.web(req, res, (err) => {
+      if (err) {
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end("Proxy Error");
+      }
+    });
   }
 });
 
@@ -34,7 +43,12 @@ httpServer.on("upgrade", (req, socket, head) => {
   if (bareServer.shouldRoute(req)) {
     bareServer.routeUpgrade(req, socket, head);
   } else {
-    socket.end();
+    // Proxy the WebSocket upgrade request to the new IP address
+    proxy.ws(req, socket, head, (err) => {
+      if (err) {
+        socket.end();
+      }
+    });
   }
 });
 
