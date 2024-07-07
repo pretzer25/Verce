@@ -13,42 +13,55 @@ const bareServer = createBareServer("/bare/");
 const proxy = httpProxy.createProxyServer({ target: targetIP });
 
 httpServer.on("request", (req, res) => {
-  if (bareServer.shouldRoute(req)) {
-    bareServer.routeRequest(req, res);
-  } else if (req.url === "/") {
-    // Serve the index.html file when the root URL is requested
-    const indexPath = path.join(__dirname, "index.html");
+  try {
+    if (bareServer.shouldRoute(req)) {
+      bareServer.routeRequest(req, res);
+    } else if (req.url === "/") {
+      // Serve the index.html file when the root URL is requested
+      const indexPath = path.join(__dirname, "index.html");
 
-    fs.readFile(indexPath, "utf8", (err, data) => {
-      if (err) {
-        res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Internal Server Error");
-      } else {
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(data);
-      }
-    });
-  } else {
-    // Proxy the request to the new IP address
-    proxy.web(req, res, (err) => {
-      if (err) {
-        res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Proxy Error");
-      }
-    });
+      fs.readFile(indexPath, "utf8", (err, data) => {
+        if (err) {
+          res.writeHead(500, { "Content-Type": "text/plain" });
+          res.end("Internal Server Error");
+        } else {
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(data);
+        }
+      });
+    } else {
+      // Proxy the request to the new IP address
+      proxy.web(req, res, (err) => {
+        if (err) {
+          console.error("Proxy error:", err);
+          res.writeHead(500, { "Content-Type": "text/plain" });
+          res.end("Proxy Error");
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Request handling error:", err);
+    res.writeHead(500, { "Content-Type": "text/plain" });
+    res.end("Internal Server Error");
   }
 });
 
 httpServer.on("upgrade", (req, socket, head) => {
-  if (bareServer.shouldRoute(req)) {
-    bareServer.routeUpgrade(req, socket, head);
-  } else {
-    // Proxy the WebSocket upgrade request to the new IP address
-    proxy.ws(req, socket, head, (err) => {
-      if (err) {
-        socket.end();
-      }
-    });
+  try {
+    if (bareServer.shouldRoute(req)) {
+      bareServer.routeUpgrade(req, socket, head);
+    } else {
+      // Proxy the WebSocket upgrade request to the new IP address
+      proxy.ws(req, socket, head, (err) => {
+        if (err) {
+          console.error("WebSocket proxy error:", err);
+          socket.end();
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Upgrade handling error:", err);
+    socket.end();
   }
 });
 
