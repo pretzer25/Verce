@@ -1,5 +1,5 @@
 const http = require("http");
-const { createServer } = require("@tomphttp/bare-server-node");
+const { createBareServer } = require("@tomphttp/bare-server-node");
 const httpProxy = require("http-proxy");
 const fs = require("fs");
 const path = require("path");
@@ -9,7 +9,7 @@ const targetIP = "http://192.168.1.100";
 
 // Create an HTTP server
 const httpServer = http.createServer();
-const bareServer = createServer(); // Adjusted function name
+const bareServer = createBareServer("/bare/");
 const proxy = httpProxy.createProxyServer({ target: targetIP });
 
 httpServer.on("request", (req, res) => {
