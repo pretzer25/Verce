@@ -23,7 +23,5 @@
   "dependencies": {
     "@tomphttp/bare-server-node": "^1.0.0",
     "http-proxy": "^1.18.1",
-    "fs": "latest",
-    "path": "latest"
   }
 }
